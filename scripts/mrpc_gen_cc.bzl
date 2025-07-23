@@ -1,8 +1,10 @@
 """ 
-generate stub file
+generate cc stub file
 """
 
-def mrpc_gen(name, src):
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+def mrpc_gen_cc(name, src):
     """ 
     generate .mrpc.h
 
@@ -18,22 +20,22 @@ def mrpc_gen(name, src):
     proto = f.split(".")[0]
 
     native.genrule(
-        name = name + "_mrpc_gen",
+        name = name + "_mrpc_gen_cc_h",
         srcs = [src],
         outs = [proto + ".mrpc.h"],
-        cmd = "$(location @mrpc//src/gen:cpp_gen) $< > $@",
-        tools = ["@mrpc//src/gen:cpp_gen"],
+        cmd = "$(location @mrpc//src/gen:gen_cc) $< > $@",
+        tools = ["@mrpc//src/gen:gen_cc"],
         visibility = ["//visibility:public"],
     )
 
     native.genrule(
-        name = name + "_empty_cc_gen",
+        name = name + "_mrpc_gen_cc_empty_cc",
         outs = [proto + ".mrpc.cc"],
         cmd = "echo '// Empty implementation file for " + proto + "' > $@",
         visibility = ["//visibility:public"],
     )
 
-    native.cc_library(
+    cc_library(
         name = name,
         hdrs = [proto + ".mrpc.h"],
         srcs = [proto + ".mrpc.cc"],

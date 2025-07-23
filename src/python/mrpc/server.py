@@ -19,7 +19,6 @@ def ServerCallback(method: bytes, key: bytes, request: bytes, source: bytes):
     key_str = key.decode()
     request_str = request.decode()
     source_str = source.decode()
-    print(f"{method_str} is being used.")
     with g_callback_mutex:
         cb = g_callbacks.get(method_str)
     if cb:

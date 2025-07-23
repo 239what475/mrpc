@@ -1,7 +1,7 @@
 load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
-load("@mrpc//scripts:mrpc_gen.bzl","mrpc_gen")
+load("@mrpc//scripts:mrpc_gen_cc.bzl","mrpc_gen_cc")
 
-mrpc_gen(
+mrpc_gen_cc(
     name = "helloworld_stub",
     src = "//:helloworld.yaml",
 )

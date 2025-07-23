@@ -1,4 +1,10 @@
 load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("@mrpc//scripts:mrpc_gen_go.bzl","mrpc_gen_go")
+
+# mrpc_gen_go(
+#     name = "helloworld_stub",
+#     src = "//:helloworld.yaml",
+# )
 
 go_binary(
     name = "greeter_client",
@@ -21,6 +27,6 @@ go_library(
     srcs = glob(["helloworld/*.go"]),
     importpath = "mrpc/example/helloworld/go/helloworld",
     deps = [
-        "//:mrpc-go",
+        "@mrpc//:mrpc-go",
     ],
 )

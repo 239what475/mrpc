@@ -1,45 +1,13 @@
-#include <fstream>
+#include "gen_stub.h"
 #include <iostream>
 #include <sstream>
-#include <string>
-#include <vector>
-#include <yaml-cpp/yaml.h>
 
-// 定义参数结构
-struct Parameter {
-  std::string name;
-  std::string type;
-};
+namespace mrpc {
+namespace generator {
 
-// 定义方法结构
-struct Method {
-  std::string name;
-  std::vector<Parameter> request_params;
-  std::vector<Parameter> response_params;
-};
-
-// 定义服务结构
-struct Service {
-  std::string name;
-  std::vector<Method> methods;
-};
-
-class StubGenerator {
+class CppStubGenerator : public StubGeneratorBase {
 private:
-  std::string yaml_filename; // 不含扩展名的yaml文件名
   std::string namespace_name;
-  Service service;
-  std::stringstream output;
-  std::string output_path;
-
-  // 首字母大写
-  std::string capitalize(const std::string &str) {
-    std::string result = str;
-    if (!result.empty()) {
-      result[0] = std::toupper(result[0]);
-    }
-    return result;
-  }
 
   // 生成头文件保护和包含声明
   void generateHeader() {
@@ -56,7 +24,7 @@ private:
   }
 
   // 生成方法名数组
-  void generateMethodNames() {
+  void generateMethodNames() override {
     output << "static const char *" << service.name << "_method_names[] = {\n";
     for (const auto &method : service.methods) {
       output << "    \"/" << namespace_name << "." << service.name << "/"
@@ -122,56 +90,58 @@ private:
   }
 
   // 生成请求/响应类
-  void generateRequestResponseClass(const Method &method) {
-    // 请求类
-    output << "class " << method.name << "Request : public mrpc::Parser {\n";
-    output << "public:\n";
-    output << "  " << method.name << "Request() {}\n";
-    output << "  " << method.name << "Request("
-           << generateConstructorParams(method.request_params)
-           << ") : " << generateInitList(method.request_params) << " {}\n\n";
+  void generateStructs() override {
+    for (const auto &method : service.methods) {
+      // 请求类
+      output << "class " << method.name << "Request : public mrpc::Parser {\n";
+      output << "public:\n";
+      output << "  " << method.name << "Request() {}\n";
+      output << "  " << method.name << "Request("
+             << generateConstructorParams(method.request_params)
+             << ") : " << generateInitList(method.request_params) << " {}\n\n";
 
-    output << "private:\n";
-    output << "  json toJson() const override { "
-           << generateJsonCode(method.request_params, true) << " }\n";
-    output << "  void fromJson(const json &j) override { "
-           << generateJsonCode(method.request_params, false) << "}\n\n";
+      output << "private:\n";
+      output << "  json toJson() const override { "
+             << generateJsonCode(method.request_params, true) << " }\n";
+      output << "  void fromJson(const json &j) override { "
+             << generateJsonCode(method.request_params, false) << "}\n\n";
 
-    output << "public:\n";
-    for (const auto &param : method.request_params) {
-      if (param.type == "string")
-        output << "  std::string " << param.name << ";\n";
-      else
-        output << "  " << param.type << " " << param.name << ";\n";
+      output << "public:\n";
+      for (const auto &param : method.request_params) {
+        if (param.type == "string")
+          output << "  std::string " << param.name << ";\n";
+        else
+          output << "  " << param.type << " " << param.name << ";\n";
+      }
+      output << "};\n\n";
+
+      // 响应类
+      output << "class " << method.name << "Response : public mrpc::Parser {\n";
+      output << "public:\n";
+      output << "  " << method.name << "Response() {}\n";
+      output << "  " << method.name << "Response("
+             << generateConstructorParams(method.response_params)
+             << ") : " << generateInitList(method.response_params) << " {}\n\n";
+
+      output << "private:\n";
+      output << "  json toJson() const override { "
+             << generateJsonCode(method.response_params, true) << " }\n";
+      output << "  void fromJson(const json &j) override { "
+             << generateJsonCode(method.response_params, false) << "}\n\n";
+
+      output << "public:\n";
+      for (const auto &param : method.response_params) {
+        if (param.type == "string")
+          output << "  std::string " << param.name << ";\n";
+        else
+          output << "  " << param.type << " " << param.name << ";\n";
+      }
+      output << "};\n\n";
     }
-    output << "};\n\n";
-
-    // 响应类
-    output << "class " << method.name << "Response : public mrpc::Parser {\n";
-    output << "public:\n";
-    output << "  " << method.name << "Response() {}\n";
-    output << "  " << method.name << "Response("
-           << generateConstructorParams(method.response_params)
-           << ") : " << generateInitList(method.response_params) << " {}\n\n";
-
-    output << "private:\n";
-    output << "  json toJson() const override { "
-           << generateJsonCode(method.response_params, true) << " }\n";
-    output << "  void fromJson(const json &j) override { "
-           << generateJsonCode(method.response_params, false) << "}\n\n";
-
-    output << "public:\n";
-    for (const auto &param : method.response_params) {
-      if (param.type == "string")
-        output << "  std::string " << param.name << ";\n";
-      else
-        output << "  " << param.type << " " << param.name << ";\n";
-    }
-    output << "};\n\n";
   }
 
   // 生成Stub类
-  void generateStubClass() {
+  void generateClient() override {
     output << "class " << service.name << "Stub : mrpc::client::MrpcClient {\n";
     output << "public:\n";
     output << "  " << service.name << "Stub(const std::string &addr) : "
@@ -203,16 +173,16 @@ private:
              << "], request, response, callback);\n  }\n\n";
     }
 
-    // 模板化的Receive方法
-    output << "  template<typename T>\n";
-    output << "  mrpc::Status Receive(const std::string &key, T &response) {\n";
+    // Receive方法
+    output << "  mrpc::Status Receive(const std::string &key, mrpc::Parser "
+              "&response) {\n";
     output << "    return mrpc::client::MrpcClient::Receive(key, response);\n";
     output << "  }\n";
     output << "};\n\n";
   }
 
   // 生成Service类
-  void generateServiceClass() {
+  void generateService() override {
     output << "class " << service.name
            << "Service : public mrpc::server::MrpcService {\n";
     output << "public:\n";
@@ -247,76 +217,26 @@ private:
   }
 
 public:
-  StubGenerator(const std::string &yaml_path) {
-    // 提取文件名（不含扩展名）作为命名空间
-    size_t last_slash = yaml_path.find_last_of("/\\");
-    size_t last_dot = yaml_path.find_last_of(".");
-    if (last_slash == std::string::npos)
-      last_slash = -1;
-    yaml_filename = yaml_path.substr(last_slash + 1, last_dot - last_slash - 1);
+  CppStubGenerator(const std::string &yaml_path)
+      : StubGeneratorBase(yaml_path) {
     namespace_name = yaml_filename;
-    output_path = yaml_filename + ".mrpc.h";
   }
 
-  bool parseYaml(const std::string &yaml_path) {
-    try {
-      YAML::Node config = YAML::LoadFile(yaml_path);
-
-      // 解析服务名称
-      service.name = config["service"]["name"].as<std::string>();
-
-      // 解析方法
-      auto methods = config["service"]["methods"];
-      for (const auto &method : methods) {
-        Method m;
-        m.name = method.first.as<std::string>();
-
-        // 解析请求参数
-        auto request = method.second["request"];
-        for (const auto &param : request) {
-          Parameter p;
-          p.name = param.first.as<std::string>();
-          p.type = param.second.as<std::string>();
-          m.request_params.push_back(p);
-        }
-
-        // 解析响应参数
-        auto response = method.second["response"];
-        for (const auto &param : response) {
-          Parameter p;
-          p.name = param.first.as<std::string>();
-          p.type = param.second.as<std::string>();
-          m.response_params.push_back(p);
-        }
-
-        service.methods.push_back(m);
-      }
-      return true;
-    } catch (const YAML::Exception &e) {
-      std::cerr << "Error parsing YAML file: " << e.what() << std::endl;
-      return false;
-    }
-  }
-
-  bool generate() {
+  bool generate() override {
     generateHeader();
     generateNamespaceStart();
     generateMethodNames();
-
-    // 生成所有方法的请求/响应类
-    for (const auto &method : service.methods) {
-      generateRequestResponseClass(method);
-    }
-
-    generateStubClass();
-    generateServiceClass();
+    generateStructs();
+    generateClient();
+    generateService();
     generateNamespaceEnd();
 
     return true;
   }
-
-  const std::string GetOutputFile() const { return output.str(); }
 };
+
+} // namespace generator
+} // namespace mrpc
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
@@ -325,7 +245,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  StubGenerator generator(argv[1]);
+  mrpc::generator::CppStubGenerator generator(argv[1]);
   if (!generator.parseYaml(argv[1])) {
     std::cerr << "Failed to parse YAML file" << std::endl;
     return 1;
@@ -336,6 +256,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  std::cout << generator.GetOutputFile() << std::endl;
+  std::cout << generator.GetGenFile() << std::endl;
   return 0;
 }

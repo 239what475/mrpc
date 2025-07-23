@@ -20,4 +20,6 @@ sh_binary(
     visibility = ["//visibility:public"],
 )
 
-exports_files(["mrpc_gen.bzl"])
+exports_files(["mrpc_gen_cc.bzl"])
+exports_files(["mrpc_gen_go.bzl"])
+exports_files(["mrpc_gen_py.bzl"])
