@@ -2,6 +2,7 @@
     "files.associations": {
         "forward_list": "cpp",
         "list": "cpp",
-        "slist": "cpp"
+        "slist": "cpp",
+        "iostream": "cpp"
     }
 }
