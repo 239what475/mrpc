@@ -82,8 +82,6 @@ public:
 
   virtual ~StubGeneratorBase() = default;
 
-  const std::string GetGenFile() const { return output.str(); }
-
   // 解析yaml文件
   bool parseYaml(const std::string &yaml_path) {
     try {
@@ -124,7 +122,7 @@ public:
   }
 
   // 生成存根文件
-  virtual bool generate() = 0;
+  virtual bool generate(const std::string &output_dir) = 0;
 };
 
 } // namespace generator

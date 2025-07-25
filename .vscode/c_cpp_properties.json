@@ -4,12 +4,7 @@
       "name": "Linux",
       "compilerPath": "/usr/bin/clang-19",
       "compilerArgs": ["-std=c++17"],
-      "intelliSenseMode": "clang-x64",
-      // "includePath": [
-      //           "${workspaceFolder}/**",
-      //           "C:/Users/28791/vcpkg/installed/x64-mingw-dynamic/include"
-      //       ]
-      //这里应该写上在Linux系统中yaml-cpp的include路径
+      "intelliSenseMode": "clang-x64"
     }
   ],
   "version": 4

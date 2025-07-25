@@ -25,8 +25,9 @@ def mrpc_gen_go(name, src):
         srcs = [src],
         outs = [proto + "/" + proto + ".mrpc.go"],
         cmd = """
-            mkdir -p $$(dirname $@) && \
-            $(location @mrpc//src/gen:gen_go) $< > $@
+            out_dir=$$(dirname $(OUTS)) && \
+            mkdir -p $$out_dir && \
+            $(location @mrpc//src/gen:gen_go) $< $$out_dir
         """,
         tools = ["@mrpc//src/gen:gen_go"],
         visibility = ["//visibility:public"],
@@ -36,7 +37,7 @@ def mrpc_gen_go(name, src):
     go_library(
         name = name,
         srcs = [name + "_mrpc_gen_go"],
-        importpath = "mrpc/example/helloworld/go/helloworld",
+        importpath = "mrpc/go/" + proto,
         deps = [
             "@mrpc//:mrpc-go",
         ],

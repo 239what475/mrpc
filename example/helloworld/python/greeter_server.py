@@ -1,7 +1,7 @@
 import signal
 import threading
 import sys
-from helloworld_mrpc import GreeterServer, GreeterService, SayHelloRequest, SayHelloResponse
+from helloworld import GreeterServer, GreeterService, SayHelloRequest, SayHelloResponse
 import mrpc  # Import mrpc to get MrpcError
 
 # 继承GreeterService并实现SayHello方法

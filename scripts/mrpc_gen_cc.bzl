@@ -22,16 +22,16 @@ def mrpc_gen_cc(name, src):
     native.genrule(
         name = name + "_mrpc_gen_cc_h",
         srcs = [src],
-        outs = [proto + ".mrpc.h"],
-        cmd = "$(location @mrpc//src/gen:gen_cc) $< > $@",
+        outs = [
+            proto + ".mrpc.h",
+            proto + ".mrpc.cc",
+        ],
+        cmd = """
+            out_dirs=$$(dirname $(OUTS)) && \
+            out_dir=$$(echo $$out_dirs | cut -d' ' -f1)  && \
+            $(location @mrpc//src/gen:gen_cc) $< $$out_dir
+        """,
         tools = ["@mrpc//src/gen:gen_cc"],
-        visibility = ["//visibility:public"],
-    )
-
-    native.genrule(
-        name = name + "_mrpc_gen_cc_empty_cc",
-        outs = [proto + ".mrpc.cc"],
-        cmd = "echo '// Empty implementation file for " + proto + "' > $@",
         visibility = ["//visibility:public"],
     )
 

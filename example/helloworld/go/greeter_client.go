@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	pb "mrpc/example/helloworld/go/helloworld"
+	pb "mrpc/go/helloworld"
 	"sync"
 )
 

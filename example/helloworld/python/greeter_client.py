@@ -1,5 +1,5 @@
 import threading
-from helloworld_mrpc import GreeterClient, SayHelloRequest
+from helloworld import GreeterClient, SayHelloRequest
 
 
 def main():

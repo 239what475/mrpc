@@ -23,10 +23,15 @@ def mrpc_gen_py(name, src):
     native.genrule(
         name = name + "_mrpc_gen_py",
         srcs = [src],
-        outs = [proto + "/" + proto + "_mrpc.py"],
+        outs = [
+            proto + "/" + proto + "_mrpc.py",
+            proto + "/__init__.py",
+        ],
         cmd = """
-            mkdir -p $$(dirname $@) && \
-            $(location @mrpc//src/gen:gen_py) $< > $@
+            out_dirs=$$(dirname $(OUTS)) && \
+            out_dir=$$(echo $$out_dirs | cut -d' ' -f1)  && \
+            mkdir -p $$out_dir && \
+            $(location @mrpc//src/gen:gen_py) $< $$out_dir
         """,
         tools = ["@mrpc//src/gen:gen_py"],
         visibility = ["//visibility:public"],

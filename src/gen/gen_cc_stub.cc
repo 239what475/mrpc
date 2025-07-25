@@ -1,4 +1,5 @@
 #include "gen_stub.h"
+#include <fstream>
 #include <iostream>
 #include <sstream>
 
@@ -222,7 +223,7 @@ public:
     namespace_name = yaml_filename;
   }
 
-  bool generate() override {
+  bool generate(const std::string &output_dir) override {
     generateHeader();
     generateNamespaceStart();
     generateMethodNames();
@@ -230,6 +231,26 @@ public:
     generateClient();
     generateService();
     generateNamespaceEnd();
+
+    std::string h_file(output_dir + "/" + yaml_filename + ".mrpc.h");
+    std::ofstream out_file_1(h_file);
+    if (!out_file_1) {
+      std::cerr << "Failed to open output file: " << h_file << std::endl;
+      return false;
+    }
+
+    out_file_1 << output.str();
+    out_file_1.close();
+
+    std::string cc_file(output_dir + "/" + yaml_filename + ".mrpc.cc");
+    std::ofstream out_file_2(cc_file);
+    if (!out_file_2) {
+      std::cerr << "Failed to open output file: " << cc_file << std::endl;
+      return false;
+    }
+
+    out_file_2 << "// Empty implementation file for " << yaml_filename;
+    out_file_2.close();
 
     return true;
   }
@@ -239,9 +260,8 @@ public:
 } // namespace mrpc
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <input.yaml> <output.h>"
-              << std::endl;
+  if (argc != 3) {
+    std::cerr << "Usage: " << argv[0] << " <input.yaml>" << std::endl;
     return 1;
   }
 
@@ -251,11 +271,12 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (!generator.generate()) {
+  if (!generator.generate(argv[2])) {
     std::cerr << "Failed to generate stub file" << std::endl;
     return 1;
   }
 
-  std::cout << generator.GetGenFile() << std::endl;
+  std::cout << "Successfully generated CC stub at: " << argv[2] << std::endl;
+
   return 0;
 }
