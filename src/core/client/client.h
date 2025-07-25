@@ -32,8 +32,8 @@ public:
 
 private:
   void _init_channel() {
-    channel_ = client::Connection::Create(io_, target_, handler_);
-    channel_->Connect();
+    connection_ = client::Connection::Create(io_, target_, handler_);
+    connection_->Connect();
   }
 
 private:
@@ -42,7 +42,7 @@ private:
       work_guard_;
   std::thread io_thread_;
   client::Target target_;
-  std::shared_ptr<client::Connection> channel_;
+  std::shared_ptr<client::Connection> connection_;
   std::once_flag channel_flag_;
   response_handler handler_;
 };

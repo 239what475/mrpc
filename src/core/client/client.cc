@@ -5,7 +5,7 @@
 namespace mrpc {
 mrpc_status Client::Send(mrpc_call *call) {
   std::call_once(channel_flag_, &Client::_init_channel, this);
-  return channel_->Send(call);
+  return connection_->Send(call);
 }
 
 } // namespace mrpc

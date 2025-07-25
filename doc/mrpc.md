@@ -25,6 +25,8 @@ service:
 
 ## 客户端
 
+> 服务端实现方式与客户端底层逻辑几乎一致，我们就从客户端来理解MRPC的设计思路，服务端相关实现作为注释简单叙述
+
 MRPC 客户端的架构参考了 grpc 的实现（也是对前段时间 grpc 学习的一个小小总结）
 
 ![前端架构](frontend_arch.png)
@@ -61,7 +63,6 @@ int mrpc_get_unique_id(const char *func, char *buf);
 3. 使用 `mrpc_send_request` 来异步发送 RPC 请求，前端的 `Send`、`Async`、`Callback` 都是对此接口的封装，这里的需要传入 `mrpc_call`：
    - `key` 即为刚才获取的 ID
    - `message` 为需要发送的内容，在 MRPC 客户端中由不同语言的前端进行编解码操作
-   - `handler` 为获取结果的回调函数，固定为下图中的 `GlobalRpcCallback`
   
    下面就来看看具体的发送逻辑：
 
@@ -69,18 +70,20 @@ int mrpc_get_unique_id(const char *func, char *buf);
 
    在不同语言前端中的 `Send`、`AsyncSend`、`Callback` 背后都是上图中 `AsyncSend` 的执行方式：
    1. 首先在 `ClientQueue` 中记录要进行的 RPC 请求，这是一个 map 用来存放每个请求的状态、结果以及可能的错误，每一项的 key 就是刚才获取的 ID
-   2. 然后在 `g_callbacks` 中注册完成回调或者用户自定义的回调函数，后续会由 `GlobalRpcCallback` 来执行回调
+   2. 然后在 `client::g_callbacks` 中注册完成回调或者用户自定义的回调函数，后续会由 `client::GlobalRpcCallback` 来执行回调（这在 `mrpc_create_client` 中作为参数将地址传入）
    3. 然后构造一个 `mrpc_call`，通过 `mrpc_send_request` 将其传递到核心库，
-   4. 在核心库中，`Client::Send` 首次执行时会通过 `Channel::Create` 创建实例，并调用 `Connect` 建立与服务端的连接，当连接成功后进入 `DoRead`，接收服务端消息
-   5. 然后调用 `Channel::Send` 向服务端发送请求
-   6. 在 `Channel::Send` 中在发送之前需要将已发送的请求记录到 `rpc_event_queue` 中。这里具体实现时由于与服务端建立连接是异步完成的，因此如果未建立连接则需要缓存待发送的请求，当成功建立连接后重新发送
+   4. 在核心库中，`Client::Send` 首次执行时会通过 `client::Connection::Create` 创建实例，并调用 `Connect` 建立与服务端的连接，当连接成功后进入 `Read`，接收服务端消息
+   5. 然后调用 `Connection::Send` 向服务端发送请求
+   6. 在 `Connection::Send` 中在发送之前需要将已发送的请求记录到 `pending_queue` 中。这里具体实现时由于与服务端建立连接是异步完成的，因此如果未建立连接则需要缓存待发送的请求，当成功建立连接后重新发送
    7. 在这时才真正进行发送
 
-4. 当服务端执行 RPC 实现函数后，客户端会在 `DoRead` 中自动接收结果：
+4. 当服务端执行 RPC 实现函数后，客户端会在 `Read` 中自动接收结果：
 
    ![自动接收](auto_receive.png)
 
-   其通过请求中的 key(ID) 在 `rpc_event_queue` 中查找记录，调用其 `callback`，及 `GlobalRpcCallback`，在其中从 `g_callbacks` 查找设置的回调函数，这可能是用户自定义的回调（通过 `CallbackSend`），或者是 `Send`、`AsyncSend` 中向 `ClientQueue` 暂存结果的回调
+   其通过请求中的 key(ID) 直接调用 `client::GlobalRpcCallback`，在其中从 `client::g_callbacks` 查找设置的回调函数，这可能是用户自定义的回调（通过 `CallbackSend`），或者是 `Send`、`AsyncSend` 中向 `ClientQueue` 暂存结果的回调
+
+   >对于服务端而言，则是调用 `server::ServerCallback`，其在 `mrpc_create_server` 中作为参数传入地址。不过服务端检索回调函数，即具体的RPC函数实现时，则是通过服务名和函数名来检索。
 
 5. 然后如果是 `AsyncSend` 用户就可以通过 `Receive`，或 `Send` 中自动 `Receive` 来接收结果：
 

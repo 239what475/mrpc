@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_go//go:def.bzl", "go_binary")
 load("@mrpc//scripts:mrpc_gen_go.bzl","mrpc_gen_go")
 
 mrpc_gen_go(
